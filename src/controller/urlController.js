@@ -9,8 +9,8 @@ let isValidRequestBody = function (requestBody) {
 }
 
 
+const baseUrl = 'http://localhost:3000'
 
-const baseUrl = ' http://localhost:3000'
 
 
 let createUrl = async function (req, res) {
@@ -20,22 +20,33 @@ let createUrl = async function (req, res) {
             return res.status(400).send({ status: false, message: "Enter valid Parameters" })
         }
 
-        if (validUrl.isUri(baseUrl)) {
+        if (!validUrl.isUri(baseUrl)) {
             return res.status(400).send({ status: false, message: "Invalid base URL" })
         }
-        const urlCode = shortid.generate()
-        const shortUrl = baseUrl + '/' + urlCode
 
         const { longUrl } = requestBody
 
         if (!longUrl) { return res.status(400).send({ status: false, message: "LongUrl required" }) }
 
-        let lUrl = await urlModel.findOne({ longUrl })
-        if (lUrl) {
-            return res.status(200).send({ status: true, data: { longUrl: lUrl.longUrl, shortUrl: lUrl.shortUrl, urlCode: lUrl.urlCode } })
+        if (!(/^(http[s]?:\/\/){0,1}(www\.){0,1}[a-zA-Z0-9\.\-]+\.[a-zA-Z]{2,5}[\.]{0,1}/.test(longUrl))) {
+            return res.status(400).send({ status: false, message: "Invalid LongURL" })
         }
-       
+        if (!(/^\S*$/.test(longUrl))) {
+            return res.status(400).send({ status: false, message: "Not a valid LongURL" })
+        }
 
+        const urlCode = shortid.generate()
+
+        // let urlcode = await urlModel.findOne({ urlCode: urlCode })
+        // if (urlcode) {
+        //     return res.status(400).send({ status: false, message: "urlCode already exist,Create unique UrlCode" })
+        // }
+
+        const shortUrl = baseUrl + '/' + urlCode
+        // let shorturl = await urlModel.findOne({ shortUrl: shortUrl })
+        // if (shorturl) {
+        //     return res.status(400).send({ status: false, message: "ShortUrl already exist,Create unique shorturl" })
+        // }
         let urlData = {
             longUrl,
             shortUrl,
@@ -53,30 +64,28 @@ let createUrl = async function (req, res) {
 
 
 
-let getOriginalUrl=async function(req,res){
-    try{
-       
-        let urlCode=req.params.urlCode
+let getOriginalUrl = async function (req, res) {
+    try {
 
+        let urlCode = req.params.urlCode
 
-        if(!urlCode){return res.status(400).send({status:false,message:"urlCode Required"})}
+        if (!urlCode) { return res.status(400).send({ status: false, message: "urlCode Required" }) }
 
-         let findUrlCode=await urlModel.findOne({urlCode})
-         if(!findUrlCode){return res.status(400).send({status:false,message:"urlCode not found"})}
+        let findUrlCode = await urlModel.findOne({ urlCode })
+        if (!findUrlCode) {
+            return res.status(404).send({ status: false, message: "urlCode not found" })
+        }
 
-         let longUrl=findUrlCode.longUrl
-         return res.status(200).send({status:true,data:longUrl})
+        return res.status(200).redirect(findUrlCode.longUrl)
     }
     catch (error) {
         res.status(500).send({ status: false, message: error.message })
     }
 }
 
+
 module.exports.createUrl = createUrl
-module.exports.getOriginalUrl=getOriginalUrl
-
-
-
+module.exports.getOriginalUrl = getOriginalUrl
 
 
 
